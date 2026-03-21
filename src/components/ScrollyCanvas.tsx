@@ -9,7 +9,7 @@ const FRAME_COUNT = 120;
 export default function ScrollyCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [images, setImages] = useState<HTMLImageElement[]>([]);
+  const [images, setImages] = useState<(HTMLImageElement | null)[]>([]);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
@@ -17,29 +17,37 @@ export default function ScrollyCanvas() {
 
   // Preload images
   useEffect(() => {
-    const loadedImages: HTMLImageElement[] = [];
+    let isCancelled = false;
+    const loadedImages: (HTMLImageElement | null)[] = new Array(FRAME_COUNT).fill(null);
 
-    const loadFrame = (index: number) => {
-      return new Promise<HTMLImageElement>((resolve) => {
-        const img = new Image();
-        const frameStr = index.toString().padStart(3, "0");
-        img.src = `/sequence/frame_${frameStr}_delay-0.066s.webp`;
-        img.onload = () => resolve(img);
-      });
+    const loadSequence = async () => {
+      const fetchImage = (index: number) => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          const frameStr = index.toString().padStart(3, "0");
+          img.src = `/sequence/frame_${frameStr}_delay-0.066s.webp`;
+          img.onload = () => {
+            if (!isCancelled) {
+              loadedImages[index] = img;
+              setImages([...loadedImages]);
+              if (index === 0) drawFrame(img);
+            }
+            resolve();
+          };
+          img.onerror = () => resolve();
+        });
+      };
+
+      await Promise.all(
+        Array.from({ length: FRAME_COUNT }).map((_, i) => fetchImage(i))
+      );
     };
 
-    const loadAll = async () => {
-      for (let i = 0; i < FRAME_COUNT; i++) {
-        const img = await loadFrame(i);
-        loadedImages.push(img);
-        if (i === 0) {
-          drawFrame(img);
-        }
-      }
-      setImages(loadedImages);
-    };
+    loadSequence();
 
-    loadAll();
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const drawFrame = (img: HTMLImageElement) => {
@@ -76,8 +84,17 @@ export default function ScrollyCanvas() {
           FRAME_COUNT - 1,
           Math.floor(scrollYProgress.get() * FRAME_COUNT)
         );
-        if (images[frameIndex]) {
-          drawFrame(images[frameIndex]);
+        let targetImg = images[frameIndex];
+        if (!targetImg) {
+          for (let i = frameIndex; i >= 0; i--) {
+            if (images[i]) {
+              targetImg = images[i];
+              break;
+            }
+          }
+        }
+        if (targetImg) {
+          drawFrame(targetImg);
         }
       }
     };
@@ -92,8 +109,19 @@ export default function ScrollyCanvas() {
     if (images.length === 0) return;
     let frameIndex = Math.floor(latest * FRAME_COUNT);
     if (frameIndex >= FRAME_COUNT) frameIndex = FRAME_COUNT - 1;
-    if (images[frameIndex]) {
-      requestAnimationFrame(() => drawFrame(images[frameIndex]));
+    
+    let targetImg = images[frameIndex];
+    if (!targetImg) {
+      for (let i = frameIndex; i >= 0; i--) {
+        if (images[i]) {
+          targetImg = images[i];
+          break;
+        }
+      }
+    }
+
+    if (targetImg) {
+      requestAnimationFrame(() => drawFrame(targetImg));
     }
   });
 
