@@ -38,6 +38,19 @@ export default function About() {
           <p>
             Beyond tech, I enjoy exploring futuristic interfaces, minimal design, and building visually interactive applications. I believe technology should not only be powerful but also intuitive and engaging.
           </p>
+          <div className="pt-6">
+            <a 
+              href="/Akash_Resume.pdf" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-8 py-4 bg-white/5 border border-white/20 text-white font-medium rounded-full hover:bg-white hover:text-black transition-colors duration-300 backdrop-blur-md shadow-lg"
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download Resume
+            </a>
+          </div>
         </motion.div>
       </div>
     </section>
